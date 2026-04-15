@@ -1,0 +1,22 @@
+# Build artifacts
+dist/
+build/
+*.fap
+*.elf
+*.o
+*.d
+*.map
+
+# IDE / editor
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Local tooling
+.claude/
+.DS_Store
+Thumbs.db
+
+# ufbt cache (if it ever lands in tree)
+.ufbt/
