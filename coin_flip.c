@@ -285,15 +285,60 @@ static void draw_coin_full(Canvas* c, uint8_t cx, uint8_t cy, uint8_t face) {
 }
 
 static void draw_coin_narrow(Canvas* c, uint8_t cx, uint8_t cy, uint8_t hw) {
-    // Coin during rotation: rounded rectangle, no face detail
-    uint8_t r = (hw < COIN_R) ? hw : COIN_R;
-    uint8_t w = hw * 2 + 1;
-    uint8_t h = COIN_R * 2 + 1;
-    canvas_draw_rframe(c, cx - hw, cy - COIN_R, w, h, r);
-    if(hw > 3) {
-        canvas_draw_rframe(c, cx - hw + 1, cy - COIN_R + 1,
-                           w - 2, h - 2, (r > 1) ? r - 1 : 1);
+    // Coin during rotation: shows depth/thickness
+    if(hw < 3) {
+        // True edge-on: render with apparent thickness (3D illusion)
+        uint8_t top = cy - COIN_R + 1;
+        uint8_t bot = cy + COIN_R - 1;
+        // Two parallel edges = front + back of coin's rim
+        canvas_draw_line(c, cx - 1, top, cx - 1, bot);
+        canvas_draw_line(c, cx + 1, top, cx + 1, bot);
+        // Rounded caps (top and bottom of edge)
+        canvas_draw_dot(c, cx, top - 1);
+        canvas_draw_dot(c, cx, bot + 1);
+        // Subtle highlight on the "near" edge
+        canvas_set_color(c, ColorWhite);
+        canvas_draw_dot(c, cx, cy - 3);
+        canvas_draw_dot(c, cx, cy + 3);
+        canvas_set_color(c, ColorBlack);
+    } else {
+        // Rotating at angle: rounded rectangle (ellipse approximation)
+        uint8_t r = (hw < COIN_R) ? hw : COIN_R;
+        uint8_t w = hw * 2 + 1;
+        uint8_t h = COIN_R * 2 + 1;
+        canvas_draw_rframe(c, cx - hw, cy - COIN_R, w, h, r);
+        if(hw > 4) {
+            canvas_draw_rframe(c, cx - hw + 1, cy - COIN_R + 1,
+                               w - 2, h - 2, (r > 1) ? r - 1 : 1);
+        }
+        // Inner ring hint (shows some face hint when partially rotated)
+        if(hw >= 7) {
+            uint8_t ih = hw - 4;
+            if(ih >= 1) {
+                canvas_draw_rframe(c, cx - ih, cy - COIN_R + 3,
+                                   ih * 2 + 1, (COIN_R - 3) * 2 + 1, (ih < 4) ? ih : 4);
+            }
+        }
     }
+}
+
+// ============================================================
+//  Drop Shadow (ground-level cast shadow during flight)
+// ============================================================
+
+static void draw_shadow(Canvas* c, uint8_t height_offset) {
+    // Dashed horizontal ellipse at ground. Width scales with coin height:
+    // wider/more-spread at apex (diffuse), tighter when coin is low (sharper).
+    uint8_t sw = 3 + (height_offset * 2) / 3;  // 3px at rest → ~13px at apex
+    uint8_t sy = COIN_CY + COIN_R + 1;          // just below idle coin bottom
+
+    // Dashed line — every-other pixel creates a soft "grey" impression on 1-bit display
+    for(int16_t x = -sw; x <= sw; x += 2) {
+        canvas_draw_dot(c, COIN_CX + x, sy);
+    }
+    // Slightly denser core (3 pixels under coin center) for ground contact feel
+    canvas_draw_dot(c, COIN_CX - 1, sy);
+    canvas_draw_dot(c, COIN_CX + 1, sy);
 }
 
 // ============================================================
@@ -314,23 +359,34 @@ static void draw_sparkles(Canvas* c, uint8_t cx, uint8_t cy, uint8_t intensity) 
 }
 
 // ============================================================
-//  History Dots (stats screen only)
+//  Ratio Bar (heads-vs-tails visual proportion)
 // ============================================================
 
-static void draw_history(Canvas* c, FlipState* s, uint8_t y) {
-    if(s->hist_len == 0) return;
-    uint8_t count = s->hist_len;
-    uint8_t total_w = count * 4 - 1;
-    uint8_t start_x = (SCREEN_W - total_w) / 2;
+static void draw_ratio_bar(Canvas* c, FlipState* s, uint8_t y) {
+    if(s->total == 0) return;
+    uint8_t bx = 10;
+    uint8_t bw = 108;
+    uint8_t bh = 4;
 
-    for(uint8_t i = 0; i < count; i++) {
-        uint8_t x = start_x + i * 4;
-        if(s->hist[i] == COIN_HEADS) {
-            canvas_draw_box(c, x, y, 3, 3);
-        } else {
-            canvas_draw_frame(c, x, y, 3, 3);
-        }
+    // Outer frame
+    canvas_draw_frame(c, bx, y, bw, bh);
+
+    // "H" label before, "T" after (tiny tick marks for clarity)
+    canvas_draw_dot(c, bx - 2, y + 1);
+    canvas_draw_dot(c, bx - 2, y + 2);
+    canvas_draw_dot(c, bx + bw + 1, y + 1);
+    canvas_draw_dot(c, bx + bw + 1, y + 2);
+
+    // Fill heads portion
+    uint32_t heads_fill = (uint32_t)s->heads * (bw - 2) / s->total;
+    if(heads_fill > 0) {
+        canvas_draw_box(c, bx + 1, y + 1, heads_fill, bh - 2);
     }
+
+    // Midpoint tick (shows 50% reference line)
+    uint8_t mid = bx + bw / 2;
+    canvas_draw_dot(c, mid, y - 1);
+    canvas_draw_dot(c, mid, y + bh);
 }
 
 // ============================================================
@@ -356,24 +412,25 @@ static void draw_stats(Canvas* c, FlipState* s) {
     char buf[30];
 
     snprintf(buf, sizeof(buf), "Total Flips:  %lu", s->total);
-    canvas_draw_str(c, 14, 28, buf);
+    canvas_draw_str(c, 14, 27, buf);
 
     if(s->total > 0) {
         uint32_t hp = s->heads * 100 / s->total;
         uint32_t tp = 100 - hp;
         snprintf(buf, sizeof(buf), "Heads: %lu (%lu%%)", s->heads, hp);
-        canvas_draw_str(c, 14, 37, buf);
+        canvas_draw_str(c, 14, 35, buf);
         snprintf(buf, sizeof(buf), "Tails: %lu (%lu%%)", s->tails, tp);
-        canvas_draw_str(c, 14, 46, buf);
+        canvas_draw_str(c, 14, 43, buf);
+
+        // Ratio bar — visual heads/tails proportion
+        draw_ratio_bar(c, s, 47);
+
         snprintf(buf, sizeof(buf), "Streak:%u%c  Best:%u%c",
                  s->streak,
                  (s->streak_side == COIN_HEADS) ? 'H' : 'T',
                  s->best_streak,
                  (s->best_side == COIN_HEADS) ? 'H' : 'T');
-        canvas_draw_str(c, 14, 52, buf);
-
-        // History dots at bottom of stats box
-        draw_history(c, s, 55);
+        canvas_draw_str(c, 14, 59, buf);
     } else {
         canvas_draw_str(c, 14, 37, "No flips yet!");
     }
@@ -426,6 +483,11 @@ static void render_cb(Canvas* canvas, void* ctx) {
         }
     }
 
+    // --- Ground shadow (shows coin airborne, drawn BEFORE coin so coin overlaps it at rest) ---
+    if(animating) {
+        draw_shadow(canvas, ANIM_Y[s->frame]);
+    }
+
     // --- Draw coin ---
     if(hw >= COIN_R - 2) {
         draw_coin_full(canvas, COIN_CX, cy, face);
@@ -454,7 +516,14 @@ static void render_cb(Canvas* canvas, void* ctx) {
     }
 
     // --- Result text ---
-    if(!animating) {
+    if(animating) {
+        // Animated "flipping..." with cycling dots
+        canvas_set_font(canvas, FontSecondary);
+        uint8_t dots = (s->frame / 3) % 4;  // 0, 1, 2, 3 dots cycling
+        char buf[16];
+        snprintf(buf, sizeof(buf), "flipping%.*s", dots, "...");
+        canvas_draw_str_aligned(canvas, 64, 47, AlignCenter, AlignTop, buf);
+    } else {
         canvas_set_font(canvas, FontPrimary);
         if(s->result == COIN_HEADS) {
             canvas_draw_str_aligned(canvas, 64, 44, AlignCenter, AlignTop, "> HEADS! <");
