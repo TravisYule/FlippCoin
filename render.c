@@ -166,30 +166,38 @@ void render_main(Canvas* canvas, App* app) {
 //  Statistics overlay — numbers + ratio bar
 // ============================================================
 
-static void draw_ratio_bar(Canvas* c, App* app, uint8_t y) {
-    if(app->total == 0) return;
-    uint8_t bx = 10;
-    uint8_t bw = 108;
-    uint8_t bh = 4;
+// Sparkline showing recent flip history — bars above the baseline = heads,
+// bars below = tails. Newest flip on the right, oldest on the left.
+// Communicates both ratio (density above/below) and temporal patterns
+// (streaks visible as runs of same-side bars) simultaneously.
+static void draw_sparkline(Canvas* c, App* app, uint8_t y_baseline) {
+    if(app->history_count == 0) return;
 
-    canvas_draw_frame(c, bx, y, bw, bh);
+    const uint8_t bar_w = 3;
+    uint8_t count = app->history_count;
+    uint16_t total_w = count * bar_w;
+    uint8_t x_start = (SCREEN_W - total_w) / 2;
 
-    // H / T ticks
-    canvas_draw_dot(c, bx - 2, y + 1);
-    canvas_draw_dot(c, bx - 2, y + 2);
-    canvas_draw_dot(c, bx + bw + 1, y + 1);
-    canvas_draw_dot(c, bx + bw + 1, y + 2);
+    // Baseline (slightly extends past the bars)
+    canvas_draw_line(c, x_start - 2, y_baseline,
+                     x_start + total_w + 1, y_baseline);
 
-    // Fill heads portion
-    uint32_t fill = (uint32_t)app->heads * (bw - 2) / app->total;
-    if(fill > 0) {
-        canvas_draw_box(c, bx + 1, y + 1, fill, bh - 2);
+    // H / T labels at the ends
+    canvas_draw_dot(c, x_start - 4, y_baseline - 2);
+    canvas_draw_dot(c, x_start - 4, y_baseline + 2);
+
+    // Bars: i=0 → leftmost (oldest), i=count-1 → rightmost (newest)
+    uint32_t h = app->history;
+    for(uint8_t i = 0; i < count; i++) {
+        uint8_t bit_pos = count - 1 - i;
+        bool is_heads = (h >> bit_pos) & 1u;
+        uint8_t x = x_start + i * bar_w;
+        if(is_heads) {
+            canvas_draw_box(c, x, y_baseline - 3, bar_w - 1, 3);
+        } else {
+            canvas_draw_box(c, x, y_baseline + 1, bar_w - 1, 3);
+        }
     }
-
-    // 50% reference tick
-    uint8_t mid = bx + bw / 2;
-    canvas_draw_dot(c, mid, y - 1);
-    canvas_draw_dot(c, mid, y + bh);
 }
 
 void render_stats(Canvas* canvas, App* app) {
@@ -208,7 +216,7 @@ void render_stats(Canvas* canvas, App* app) {
         snprintf(buf, sizeof(buf), "Tails: %lu (%lu%%)", app->tails, tp);
         canvas_draw_str(canvas, 14, 43, buf);
 
-        draw_ratio_bar(canvas, app, 47);
+        draw_sparkline(canvas, app, 48);
 
         snprintf(buf, sizeof(buf), "Streak:%u%c  Best:%u%c",
                  app->streak, (app->streak_side == COIN_HEADS) ? 'H' : 'T',

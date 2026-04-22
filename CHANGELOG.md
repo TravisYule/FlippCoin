@@ -4,6 +4,26 @@ All notable changes to FlippCoin are documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.3.0] — 2026-04-22
+
+### Added
+- **Flip history** (last 32 flips) stored as a packed `uint32_t` bitmap
+  alongside an 8-bit count. Newest flip in bit 0, oldest in the highest
+  valid bit. Persists across restarts.
+- **Sparkline chart** on the stats screen — bars above the baseline are
+  heads, bars below are tails, newest on the right. Shows ratio AND
+  temporal streaks at a glance.
+
+### Changed
+- Replaced the aggregate ratio bar with the sparkline (the sparkline
+  shows distribution visually AND reveals patterns the bar hid).
+- Save format bumped to v3. v1 and v2 files load cleanly — the new
+  `history_count` and `history` fields live where `_pad` and
+  `_reserved[4]` used to, both of which were always zeroed, so old
+  saves naturally map to empty-history under v3's layout.
+
+---
+
 ## [3.2.0] — 2026-04-22
 
 ### Added

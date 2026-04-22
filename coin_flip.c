@@ -65,6 +65,8 @@ static void reset_all_stats(App* app) {
     app->streak_side = COIN_HEADS;
     app->best_side = COIN_HEADS;
     app->result = COIN_NONE;
+    app->history = 0;
+    app->history_count = 0;
     particles_clear(app);
     app->sparkle = 0;
 }
@@ -106,6 +108,10 @@ static void commit_flip_result(App* app) {
 
     if(app->result == COIN_HEADS) app->heads++;
     else app->tails++;
+
+    // History (shift left, OR new bit at position 0)
+    app->history = (app->history << 1) | (app->result == COIN_HEADS ? 1u : 0u);
+    if(app->history_count < 32) app->history_count++;
 
     // Streak tracking
     if(app->total == 1 || app->result != app->streak_side) {

@@ -26,7 +26,7 @@
 // ---------------------------------------------------------------
 //  Version
 // ---------------------------------------------------------------
-#define FLIPPCOIN_VERSION_STRING "v3.2"
+#define FLIPPCOIN_VERSION_STRING "v3.3"
 
 // ---------------------------------------------------------------
 //  Screen
@@ -167,6 +167,11 @@ typedef struct {
 
     // Achievements (persisted, bitmask of Achievement values)
     uint16_t achievements;
+
+    // Flip history (persisted) — bit 0 = newest flip, 1 = heads, 0 = tails
+    // Stores last 32 flips for the stats-screen sparkline.
+    uint32_t history;
+    uint8_t history_count; // number of valid bits (0-32)
 
     // Settings (persisted)
     bool haptic_enabled;

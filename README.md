@@ -45,7 +45,8 @@ RNG for true randomness on every flip.
 - Persistent across app restarts (saved to SD card)
 - Total flips, heads/tails with percentages
 - Current and best streak tracking with side indicator
-- Visual heads/tails ratio bar with 50% midpoint reference
+- **Sparkline history** — last 32 flips as a bar chart (heads up, tails
+  down, newest on the right). Reveals streaks and variance at a glance
 - **6 achievements** — First Flip · Ten Count · Centurion · Grand Master ·
   Hot Streak (5 in a row) · Impossible (10 in a row). Unlocks trigger
   a toast banner and green-LED pulse

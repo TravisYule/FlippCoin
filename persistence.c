@@ -4,24 +4,27 @@
 #define SAVE_PATH SAVE_DIR "/state.bin"
 
 #define SAVE_MAGIC   0xF11CC01Du
-#define SAVE_VERSION 2u  // bumped: adds achievements field
+#define SAVE_VERSION 3u  // v1: base · v2: +achievements · v3: +history
 
-// On-disk format — fixed size so version compat is trivial.
-// v1 → v2: added `achievements` (uint16) where `_reserved[0..1]` used to be.
+// On-disk format — fixed 32 bytes so version compat is trivial.
+//   v1 → v2: `achievements` claims what was `_reserved[0..1]`.
+//   v2 → v3: `history_count` claims `_pad`; `history` claims `_reserved[4]`.
+// Old saves (bytes 25-31 zeroed in v1 and v2) naturally load as
+// history_count=0, history=0 under the v3 layout. No migration needed.
 typedef struct {
-    uint32_t magic;
-    uint32_t version;
-    uint32_t total;
-    uint32_t heads;
-    uint32_t tails;
-    uint16_t best_streak;
-    uint8_t  best_side;
-    uint8_t  haptic_enabled;
-    uint8_t  sound_enabled;
-    uint8_t  _pad;          // alignment before uint16
-    uint16_t achievements;  // bitmask, new in v2
-    uint8_t  _reserved[4];  // pad to 32 bytes for future-proofing
-} SavedState;
+    uint32_t magic;          // 0
+    uint32_t version;        // 4
+    uint32_t total;          // 8
+    uint32_t heads;          // 12
+    uint32_t tails;          // 16
+    uint16_t best_streak;    // 20
+    uint8_t  best_side;      // 22
+    uint8_t  haptic_enabled; // 23
+    uint8_t  sound_enabled;  // 24
+    uint8_t  history_count;  // 25 (was _pad in v2)
+    uint16_t achievements;   // 26
+    uint32_t history;        // 28 (was _reserved[4] in v2)
+} SavedState;                 // 32 bytes total
 
 void persistence_load(App* app) {
     Storage* storage = furi_record_open(RECORD_STORAGE);
@@ -30,9 +33,9 @@ void persistence_load(App* app) {
     if(storage_file_open(file, SAVE_PATH, FSAM_READ, FSOM_OPEN_EXISTING)) {
         SavedState s;
         uint16_t read = storage_file_read(file, &s, sizeof(s));
-        // Accept v1 or v2 — v1 saves get their achievements field zeroed
+        // Accept v1, v2, or v3 — old saves naturally zero the new fields
         if(read == sizeof(s) && s.magic == SAVE_MAGIC &&
-           (s.version == 1u || s.version == SAVE_VERSION)) {
+           (s.version >= 1u && s.version <= SAVE_VERSION)) {
             app->total = s.total;
             app->heads = s.heads;
             app->tails = s.tails;
@@ -41,6 +44,10 @@ void persistence_load(App* app) {
             app->haptic_enabled = s.haptic_enabled != 0;
             app->sound_enabled = s.sound_enabled != 0;
             app->achievements = (s.version >= 2u) ? s.achievements : 0;
+            if(s.version >= 3u) {
+                app->history = s.history;
+                app->history_count = (s.history_count <= 32) ? s.history_count : 0;
+            }
         }
         storage_file_close(file);
     }
@@ -65,9 +72,9 @@ void persistence_save(App* app) {
             .best_side = app->best_side,
             .haptic_enabled = app->haptic_enabled ? 1 : 0,
             .sound_enabled = app->sound_enabled ? 1 : 0,
-            ._pad = 0,
+            .history_count = app->history_count,
             .achievements = app->achievements,
-            ._reserved = {0},
+            .history = app->history,
         };
         storage_file_write(file, &s, sizeof(s));
         storage_file_close(file);
