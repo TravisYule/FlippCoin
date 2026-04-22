@@ -17,7 +17,8 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Build with ufbt
-        uses: flipperdevices/flipperzero-ufbt-action@v0
+        id: ufbt
+        uses: flipperdevices/flipperzero-ufbt-action@v0.1.4
         with:
           sdk-channel: release
           app-dir: .
@@ -26,7 +27,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: flipp_coin-${{ github.sha }}
-          path: dist/*.fap
+          path: ${{ steps.ufbt.outputs.fap-dir }}/*.fap
           if-no-files-found: error
           retention-days: 30
 
@@ -42,7 +43,8 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Build with ufbt
-        uses: flipperdevices/flipperzero-ufbt-action@v0
+        id: ufbt
+        uses: flipperdevices/flipperzero-ufbt-action@v0.1.4
         with:
           sdk-channel: release
           app-dir: .
@@ -50,5 +52,5 @@ jobs:
       - name: Upload FAP to release
         uses: softprops/action-gh-release@v2
         with:
-          files: dist/*.fap
+          files: ${{ steps.ufbt.outputs.fap-dir }}/*.fap
           fail_on_unmatched_files: true
