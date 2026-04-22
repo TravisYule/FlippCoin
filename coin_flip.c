@@ -354,6 +354,8 @@ static void tick_animation(App* app) {
             }
         }
 
+        // Reset tick so the idle gleam sweeps immediately after landing
+        app->tick = 0;
         go_to_state(app, StateIdle);
     }
 }

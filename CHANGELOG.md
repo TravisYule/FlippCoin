@@ -4,6 +4,31 @@ All notable changes to FlippCoin are documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.4.0] — 2026-04-22
+
+### Changed
+- **Heads artwork redesigned**: taller crown, stronger nose protrusion
+  (max at `cx-7`), defined jaw with chin-separator shading, and two
+  subtle hair-texture carves suggesting waves. Laurel wreath reorganized
+  into paired V-leaf marks along the back-of-head rim instead of loose
+  dots — now reads as actual foliage.
+- **Tails artwork redesigned**: added eye dot on the eagle head, sharper
+  distinction between olive-branch cluster (3 leaves with proper cluster
+  shape) and arrow talon (shaft + arrowhead + fletching), and a cleaner
+  4-stripe heraldic shield.
+
+### Added
+- **Milled rim texture** — 12 tiny radial dots between the outer border
+  (r=13) and inner decorative ring (r=11) simulating the "reeding"
+  texture on real coin edges. Subtle but gives the coin tactile
+  authenticity.
+- **Landing gleam** — the diagonal highlight sweep now fires immediately
+  when the coin lands (by resetting the gleam-phase tick), so every
+  result gets a visual shine as it's revealed instead of waiting for
+  the next periodic sweep.
+
+---
+
 ## [3.3.0] — 2026-04-22
 
 ### Added
