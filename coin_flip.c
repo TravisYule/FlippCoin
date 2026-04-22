@@ -33,6 +33,7 @@ static void render_callback(Canvas* canvas, void* ctx) {
     case StateIdle:          render_main(canvas, app); break;
     case StateFlipping:      render_main(canvas, app); break;
     case StateStats:         render_stats(canvas, app); break;
+    case StateAchievements:  render_achievements(canvas, app); break;
     case StateSettings:      render_settings(canvas, app); break;
     case StateAbout:         render_about(canvas, app); break;
     case StateResetConfirm:  render_reset_confirm(canvas, app); break;
@@ -68,6 +69,37 @@ static void reset_all_stats(App* app) {
     app->sparkle = 0;
 }
 
+// Show a toast banner for ~1.5s.
+static void show_toast(App* app, const char* text) {
+    app->toast_text = text;
+    app->toast_timer = 45;  // frames at 30 FPS
+}
+
+// Check-and-unlock a single achievement. Returns true if freshly unlocked.
+static bool unlock(App* app, uint16_t flag) {
+    if(app->achievements & flag) return false;
+    app->achievements |= flag;
+    notification_message(app->notif, &sequence_success);
+    return true;
+}
+
+static void check_achievements(App* app) {
+    // Order matters — later checks overwrite earlier toasts for the same flip.
+    // We prioritize rarer achievements by checking them last.
+    if(app->total >= 1 && unlock(app, AchFirstFlip))
+        show_toast(app, "FIRST FLIP!");
+    if(app->total >= 10 && unlock(app, AchTenCount))
+        show_toast(app, "TEN COUNT!");
+    if(app->total >= 100 && unlock(app, AchCenturion))
+        show_toast(app, "CENTURION!");
+    if(app->streak >= 5 && unlock(app, AchHotStreak))
+        show_toast(app, "HOT STREAK!");
+    if(app->total >= 1000 && unlock(app, AchGrandMaster))
+        show_toast(app, "GRAND MASTER!");
+    if(app->streak >= 10 && unlock(app, AchImpossible))
+        show_toast(app, "IMPOSSIBLE!");
+}
+
 static void commit_flip_result(App* app) {
     app->result = app->pending_result;
     app->total++;
@@ -82,14 +114,25 @@ static void commit_flip_result(App* app) {
     } else {
         app->streak++;
     }
-    // New best streak (require >= 3 to avoid celebrating trivial 2-in-a-rows)
+
+    // New best streak (>= 3 to avoid celebrating trivial 2-in-a-rows).
+    // Achievement unlocks take priority over NEW BEST (shown below).
+    bool new_best = false;
     if(app->streak > app->best_streak) {
         app->best_streak = app->streak;
         app->best_side = app->streak_side;
-        if(app->streak >= 3) {
-            app->celebrate = 45; // ~1.5s banner at 30 FPS
-            notification_message(app->notif, &sequence_success);
-        }
+        new_best = (app->streak >= 3);
+    }
+
+    // Achievement checks come after stats are updated
+    uint16_t before = app->achievements;
+    check_achievements(app);
+    bool unlocked_something = (app->achievements != before);
+
+    // Fall back to NEW BEST toast only if no achievement fired
+    if(new_best && !unlocked_something) {
+        show_toast(app, "NEW BEST!");
+        notification_message(app->notif, &sequence_success);
     }
 }
 
@@ -134,10 +177,11 @@ static void handle_input_menu(App* app, InputKey key, bool* running) {
     case InputKeyOk:
         sound_menu_select(app);
         switch(app->menu_cursor) {
-        case MenuItemFlip:     go_to_state(app, StateIdle); break;
-        case MenuItemStats:    go_to_state(app, StateStats); break;
-        case MenuItemSettings: go_to_state(app, StateSettings); break;
-        case MenuItemAbout:    go_to_state(app, StateAbout); break;
+        case MenuItemFlip:         go_to_state(app, StateIdle); break;
+        case MenuItemStats:        go_to_state(app, StateStats); break;
+        case MenuItemAchievements: go_to_state(app, StateAchievements); break;
+        case MenuItemSettings:     go_to_state(app, StateSettings); break;
+        case MenuItemAbout:        go_to_state(app, StateAbout); break;
         }
         break;
     case InputKeyBack:
@@ -194,6 +238,13 @@ static void handle_input_stats(App* app, InputKey key) {
 }
 
 static void handle_input_about(App* app, InputKey key) {
+    if(key == InputKeyBack || key == InputKeyOk) {
+        sound_menu_click(app);
+        go_to_state(app, StateMenu);
+    }
+}
+
+static void handle_input_achievements(App* app, InputKey key) {
     if(key == InputKeyBack || key == InputKeyOk) {
         sound_menu_click(app);
         go_to_state(app, StateMenu);
@@ -351,6 +402,7 @@ int32_t coin_flip_app(void* p) {
             case StateIdle:         handle_input_idle(app, event.input.key); break;
             case StateFlipping:     handle_input_flipping(app, event.input.key); break;
             case StateStats:        handle_input_stats(app, event.input.key); break;
+            case StateAchievements: handle_input_achievements(app, event.input.key); break;
             case StateSettings:     handle_input_settings(app, event.input.key); break;
             case StateAbout:        handle_input_about(app, event.input.key); break;
             case StateResetConfirm: handle_input_reset_confirm(app, event.input.key); break;
@@ -363,7 +415,7 @@ int32_t coin_flip_app(void* p) {
         furi_mutex_acquire(app->mutex, FuriWaitForever);
         tick_animation(app);
         if(app->sparkle > 0) app->sparkle--;
-        if(app->celebrate > 0) app->celebrate--;
+        if(app->toast_timer > 0) app->toast_timer--;
         particles_tick(app);
         app->tick++;
         furi_mutex_release(app->mutex);

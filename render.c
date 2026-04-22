@@ -35,6 +35,7 @@ static void draw_menu_item(Canvas* c, uint8_t x, uint8_t y, const char* label,
 static const char* MENU_LABELS[MenuItemCount] = {
     "Flip",
     "Statistics",
+    "Achievements",
     "Settings",
     "About",
 };
@@ -43,12 +44,13 @@ void render_menu(Canvas* canvas, App* app) {
     draw_titled_frame(canvas, "FlippCoin");
 
     canvas_set_font(canvas, FontSecondary);
+    // 5 items at 7px spacing to fit + leave room for version footer
     for(uint8_t i = 0; i < MenuItemCount; i++) {
-        uint8_t y = 29 + i * 8;
+        uint8_t y = 27 + i * 7;
         draw_menu_item(canvas, 24, y, MENU_LABELS[i], NULL, i == app->menu_cursor);
     }
 
-    // Footer
+    // Footer (version)
     canvas_draw_str_aligned(canvas, 64, 62, AlignCenter, AlignBottom,
                             FLIPPCOIN_VERSION_STRING);
 }
@@ -131,12 +133,12 @@ void render_main(Canvas* canvas, App* app) {
             snprintf(buf, sizeof(buf), "flipping%.*s", dots, "...");
         }
         canvas_draw_str_aligned(canvas, 64, 47, AlignCenter, AlignTop, buf);
-    } else if(app->celebrate > 0) {
-        // NEW BEST banner — brief flash after beating best streak
-        canvas_draw_box(canvas, 20, 43, 88, 12);
+    } else if(app->toast_timer > 0 && app->toast_text) {
+        // Toast banner — briefly flashes a milestone message (NEW BEST, achievement names)
+        canvas_draw_box(canvas, 10, 43, 108, 12);
         canvas_set_color(canvas, ColorWhite);
         canvas_set_font(canvas, FontPrimary);
-        canvas_draw_str_aligned(canvas, 64, 44, AlignCenter, AlignTop, "NEW BEST!");
+        canvas_draw_str_aligned(canvas, 64, 44, AlignCenter, AlignTop, app->toast_text);
         canvas_set_color(canvas, ColorBlack);
     } else {
         canvas_set_font(canvas, FontPrimary);
@@ -215,6 +217,57 @@ void render_stats(Canvas* canvas, App* app) {
     } else {
         canvas_draw_str(canvas, 14, 37, "No flips yet!");
     }
+}
+
+// ============================================================
+//  Achievements — 6 milestones with unlock indicators
+// ============================================================
+
+typedef struct {
+    uint16_t flag;
+    const char* name;
+    const char* detail;
+} AchievementRow;
+
+static const AchievementRow ACHIEVEMENTS[ACHIEVEMENT_COUNT] = {
+    { AchFirstFlip,   "First Flip",   "any flip"      },
+    { AchTenCount,    "Ten Count",    "10 flips"      },
+    { AchCenturion,   "Centurion",    "100 flips"     },
+    { AchGrandMaster, "Grand Master", "1000 flips"    },
+    { AchHotStreak,   "Hot Streak",   "5 in a row"    },
+    { AchImpossible,  "Impossible",   "10 in a row"   },
+};
+
+void render_achievements(Canvas* c, App* app) {
+    draw_titled_frame(c, "ACHIEVEMENTS");
+
+    canvas_set_font(c, FontSecondary);
+
+    uint8_t unlocked = 0;
+    for(uint8_t i = 0; i < ACHIEVEMENT_COUNT; i++) {
+        bool got = (app->achievements & ACHIEVEMENTS[i].flag) != 0;
+        if(got) unlocked++;
+
+        uint8_t y = 26 + i * 6;
+
+        // Checkbox
+        canvas_draw_frame(c, 10, y - 4, 5, 5);
+        if(got) {
+            canvas_draw_box(c, 11, y - 3, 3, 3);
+        }
+
+        // Name + detail (dimmed if locked)
+        char line[28];
+        snprintf(line, sizeof(line), "%s (%s)",
+                 ACHIEVEMENTS[i].name, ACHIEVEMENTS[i].detail);
+        canvas_draw_str(c, 18, y, line);
+    }
+
+    // Progress footer
+    char progress[24];
+    snprintf(progress, sizeof(progress), "%u / %u unlocked",
+             unlocked, ACHIEVEMENT_COUNT);
+    canvas_draw_str_aligned(c, 64, 62, AlignCenter, AlignBottom, progress);
 }
 
 // ============================================================

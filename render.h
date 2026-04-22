@@ -11,6 +11,7 @@
 void render_menu(Canvas* canvas, App* app);
 void render_main(Canvas* canvas, App* app);
 void render_stats(Canvas* canvas, App* app);
+void render_achievements(Canvas* canvas, App* app);
 void render_settings(Canvas* canvas, App* app);
 void render_about(Canvas* canvas, App* app);
 void render_reset_confirm(Canvas* canvas, App* app);

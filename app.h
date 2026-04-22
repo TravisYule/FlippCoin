@@ -26,7 +26,7 @@
 // ---------------------------------------------------------------
 //  Version
 // ---------------------------------------------------------------
-#define FLIPPCOIN_VERSION_STRING "v3.1"
+#define FLIPPCOIN_VERSION_STRING "v3.2"
 
 // ---------------------------------------------------------------
 //  Screen
@@ -64,10 +64,27 @@
 typedef enum {
     MenuItemFlip = 0,
     MenuItemStats,
+    MenuItemAchievements,
     MenuItemSettings,
     MenuItemAbout,
     MenuItemCount,
 } MenuItem;
+
+// ---------------------------------------------------------------
+//  Achievements (bitmask — max 16 supported)
+// ---------------------------------------------------------------
+typedef enum {
+    AchFirstFlip    = 1 << 0,  // First flip ever
+    AchTenCount     = 1 << 1,  // 10 total flips
+    AchCenturion    = 1 << 2,  // 100 total flips
+    AchGrandMaster  = 1 << 3,  // 1000 total flips
+    AchHotStreak    = 1 << 4,  // Streak of 5+
+    AchImpossible   = 1 << 5,  // Streak of 10+
+    AchAll          = AchFirstFlip | AchTenCount | AchCenturion
+                    | AchGrandMaster | AchHotStreak | AchImpossible,
+} Achievement;
+
+#define ACHIEVEMENT_COUNT 6
 
 // ---------------------------------------------------------------
 //  Settings items
@@ -87,6 +104,7 @@ typedef enum {
     StateIdle,
     StateFlipping,
     StateStats,
+    StateAchievements,
     StateSettings,
     StateAbout,
     StateResetConfirm,
@@ -143,8 +161,12 @@ typedef struct {
     uint8_t auto_remaining;
     uint8_t auto_total;   // original count (for progress display)
 
-    // Celebration flash: non-zero during "NEW BEST!" banner after streak record
-    uint8_t celebrate;
+    // Toast banner — briefly flashes a message (NEW BEST, achievements, etc.)
+    uint8_t toast_timer;
+    const char* toast_text;  // pointer to static literal (never freed)
+
+    // Achievements (persisted, bitmask of Achievement values)
+    uint16_t achievements;
 
     // Settings (persisted)
     bool haptic_enabled;

@@ -41,11 +41,14 @@ RNG for true randomness on every flip.
 - **Impact effects** — 8-particle landing spray + radiating sparkle lines
 - **Idle gleam** — diagonal highlight sweeps across the resting coin
 
-### Stats
+### Stats & Achievements
 - Persistent across app restarts (saved to SD card)
 - Total flips, heads/tails with percentages
 - Current and best streak tracking with side indicator
 - Visual heads/tails ratio bar with 50% midpoint reference
+- **6 achievements** — First Flip · Ten Count · Centurion · Grand Master ·
+  Hot Streak (5 in a row) · Impossible (10 in a row). Unlocks trigger
+  a toast banner and green-LED pulse
 
 ### Audio & Haptics
 - Distinct sounds for launch, landing, heads reveal (rising), tails reveal (falling)

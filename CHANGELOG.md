@@ -4,6 +4,26 @@ All notable changes to FlippCoin are documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.2.0] — 2026-04-22
+
+### Added
+- **Achievements system** with 6 milestones:
+  First Flip · Ten Count (10) · Centurion (100) · Grand Master (1000) ·
+  Hot Streak (5 in a row) · Impossible (10 in a row)
+- **Achievements screen** accessible from the main menu, showing unlock
+  status (filled/empty checkbox) and a `N / 6 unlocked` progress footer
+- **Toast banner system** replaces the one-off NEW BEST! flash — any
+  milestone (achievement unlock OR new best streak) surfaces a labelled
+  banner for ~1.5s with a synchronized green-LED pulse
+- On-disk save format bumped to v2 (adds `achievements` bitmask).
+  v1 saves auto-migrate cleanly; achievements start at zero
+
+### Changed
+- Main menu now has 5 items (Achievements inserted between Statistics
+  and Settings). Menu spacing tightened to 7px to fit
+
+---
+
 ## [3.1.0] — 2026-04-22
 
 ### Added
