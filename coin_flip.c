@@ -82,9 +82,14 @@ static void commit_flip_result(App* app) {
     } else {
         app->streak++;
     }
+    // New best streak (require >= 3 to avoid celebrating trivial 2-in-a-rows)
     if(app->streak > app->best_streak) {
         app->best_streak = app->streak;
         app->best_side = app->streak_side;
+        if(app->streak >= 3) {
+            app->celebrate = 45; // ~1.5s banner at 30 FPS
+            notification_message(app->notif, &sequence_success);
+        }
     }
 }
 
@@ -143,9 +148,17 @@ static void handle_input_menu(App* app, InputKey key, bool* running) {
     }
 }
 
+#define AUTO_FLIP_COUNT 10
+
 static void handle_input_idle(App* app, InputKey key) {
     switch(key) {
     case InputKeyOk:
+        start_flip(app);
+        break;
+    case InputKeyRight:
+        // Start auto-flip: N rapid flips in succession
+        app->auto_remaining = AUTO_FLIP_COUNT;
+        app->auto_total = AUTO_FLIP_COUNT;
         start_flip(app);
         break;
     case InputKeyUp:
@@ -163,9 +176,11 @@ static void handle_input_idle(App* app, InputKey key) {
 
 static void handle_input_flipping(App* app, InputKey key) {
     if(key == InputKeyBack) {
-        // Cancel flip
+        // Cancel flip — also cancels any remaining auto-flip chain
         app->frame = 0;
         app->sparkle = 0;
+        app->auto_remaining = 0;
+        app->auto_total = 0;
         particles_clear(app);
         go_to_state(app, StateIdle);
     }
@@ -270,6 +285,18 @@ static void tick_animation(App* app) {
         commit_flip_result(app);
         persistence_save(app);
         sound_reveal(app, app->result);
+
+        // Auto-flip: chain into the next flip if any remain
+        if(app->auto_remaining > 0) {
+            app->auto_remaining--;
+            if(app->auto_remaining > 0) {
+                start_flip(app);
+                return;
+            } else {
+                app->auto_total = 0;  // sequence complete
+            }
+        }
+
         go_to_state(app, StateIdle);
     }
 }
@@ -336,6 +363,7 @@ int32_t coin_flip_app(void* p) {
         furi_mutex_acquire(app->mutex, FuriWaitForever);
         tick_animation(app);
         if(app->sparkle > 0) app->sparkle--;
+        if(app->celebrate > 0) app->celebrate--;
         particles_tick(app);
         app->tick++;
         furi_mutex_release(app->mutex);

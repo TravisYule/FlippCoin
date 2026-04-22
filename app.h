@@ -26,7 +26,7 @@
 // ---------------------------------------------------------------
 //  Version
 // ---------------------------------------------------------------
-#define FLIPPCOIN_VERSION_STRING "v3.0"
+#define FLIPPCOIN_VERSION_STRING "v3.1"
 
 // ---------------------------------------------------------------
 //  Screen
@@ -138,6 +138,13 @@ typedef struct {
 
     // Monotonic tick counter (for gleam and other idle animations)
     uint32_t tick;
+
+    // Auto-flip mode: remaining flips in a rapid sequence (0 = normal)
+    uint8_t auto_remaining;
+    uint8_t auto_total;   // original count (for progress display)
+
+    // Celebration flash: non-zero during "NEW BEST!" banner after streak record
+    uint8_t celebrate;
 
     // Settings (persisted)
     bool haptic_enabled;

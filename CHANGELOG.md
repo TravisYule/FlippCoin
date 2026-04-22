@@ -4,6 +4,27 @@ All notable changes to FlippCoin are documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.1.0] — 2026-04-22
+
+### Added
+- **Auto-flip mode** — press `Right` on the main screen to run 10 rapid
+  flips in a row. Progress shown as `auto N/10` during the sequence.
+  `Back` cancels the remaining flips. Great for statistical experiments.
+- **New-best-streak celebration** — when a streak of 3+ beats your previous
+  best, a "NEW BEST!" banner flashes for ~1.5 seconds and the green LED
+  pulses via `sequence_success`.
+
+### Changed
+- Main-screen idle prompt now shows "OK=flip   Right=auto" to surface the
+  new shortcut.
+
+### Fixed
+- **CI workflow** now pins `flipperdevices/flipperzero-ufbt-action@v0.1.4`
+  (previously `@v0` which doesn't exist) and uses the action's `fap-dir`
+  output for the artifact path. Builds are now green on every push.
+
+---
+
 ## [3.0.0] — 2026-04-20
 
 Major architectural rework. The app has been rebuilt from a single C file

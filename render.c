@@ -121,10 +121,23 @@ void render_main(Canvas* canvas, App* app) {
     // Result text / prompt
     if(animating) {
         canvas_set_font(canvas, FontSecondary);
-        uint8_t dots = (app->frame / 3) % 4;
-        char buf[16];
-        snprintf(buf, sizeof(buf), "flipping%.*s", dots, "...");
+        char buf[20];
+        if(app->auto_total > 0) {
+            // Auto-flip progress: "auto 3/10"
+            uint8_t done = app->auto_total - app->auto_remaining + 1;
+            snprintf(buf, sizeof(buf), "auto %u/%u", done, app->auto_total);
+        } else {
+            uint8_t dots = (app->frame / 3) % 4;
+            snprintf(buf, sizeof(buf), "flipping%.*s", dots, "...");
+        }
         canvas_draw_str_aligned(canvas, 64, 47, AlignCenter, AlignTop, buf);
+    } else if(app->celebrate > 0) {
+        // NEW BEST banner — brief flash after beating best streak
+        canvas_draw_box(canvas, 20, 43, 88, 12);
+        canvas_set_color(canvas, ColorWhite);
+        canvas_set_font(canvas, FontPrimary);
+        canvas_draw_str_aligned(canvas, 64, 44, AlignCenter, AlignTop, "NEW BEST!");
+        canvas_set_color(canvas, ColorBlack);
     } else {
         canvas_set_font(canvas, FontPrimary);
         if(app->result == COIN_HEADS) {
@@ -133,7 +146,7 @@ void render_main(Canvas* canvas, App* app) {
             canvas_draw_str_aligned(canvas, 64, 44, AlignCenter, AlignTop, "> TAILS! <");
         } else {
             canvas_set_font(canvas, FontSecondary);
-            canvas_draw_str_aligned(canvas, 64, 47, AlignCenter, AlignTop, "Press OK to flip");
+            canvas_draw_str_aligned(canvas, 64, 46, AlignCenter, AlignTop, "OK=flip   Right=auto");
         }
     }
 

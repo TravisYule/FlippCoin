@@ -62,12 +62,13 @@ RNG for true randomness on every flip.
 
 ## Controls
 
-| Button | Main Screen | Menus |
-|:------:|:------------|:------|
-| **OK**   | Flip coin | Select / toggle |
-| **Up**   | Open menu | Navigate up |
-| **Down** | — | Navigate down |
-| **Back** | Open menu | Back / cancel |
+| Button    | Main Screen             | Menus              |
+|:---------:|:------------------------|:-------------------|
+| **OK**    | Flip coin               | Select / toggle    |
+| **Right** | Auto-flip (10 in a row) | —                  |
+| **Up**    | Open menu               | Navigate up        |
+| **Down**  | —                       | Navigate down      |
+| **Back**  | Open menu               | Back / cancel      |
 
 ## Install (prebuilt)
 
