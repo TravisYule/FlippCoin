@@ -4,6 +4,40 @@ All notable changes to FlippCoin are documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.5.0] — 2026-04-22
+
+Thorough layout refinement pass. Every screen audited pixel-by-pixel
+against the Flipper Zero's 128×64 canvas and font metrics.
+
+### Fixed
+- **Main screen** — title and separator now hide during animation.
+  Previously the coin at apex (cy=13 with artwork extending to y=2)
+  would overlap the "FlippCoin" title text at y=1..10.
+- **Menu screen** — dropped the version footer. With 5 items at 8px
+  spacing, item 5 at y=59 was overlapping the footer at y=54..62 by
+  up to 6 pixels. Version is visible on the About screen.
+- **Stats screen** — tightened vertical spacing; sparkline reduced
+  to 2px bars. The old 3px bars at baseline y=47 collided with the
+  "Tails" line bottom. New layout: Total y=27, Heads y=35, Tails y=43,
+  sparkline y=48, Streak y=57. Empty state now shows helpful hint.
+- **Achievements screen** — unlock count moved into the title
+  ("Achievements N/M") so the footer could be removed. The footer
+  was overlapping item 6 by 5 pixels. Detail text switched to column
+  layout with short goals (1, 10, 100, 1000, 5 row, 10 row) so even
+  "Grand Master 1000" fits within the 120px inner frame.
+- **Settings screen** — repositioned items to y=28/38/48 with footer
+  at y=58. Previous y=30/40/50 had the Reset item overlapping the
+  footer.
+- **About screen** — moved the github URL up to y=52 AlignTop. It
+  was at y=54, putting its bottom at y=62 — outside the inner frame
+  at y=59.
+- **draw_menu_item** alignment bug — label (baseline y) and value
+  (AlignBottom y) were vertically offset by 2px. Value now uses
+  `canvas_string_width` to right-align at the same baseline as the
+  label.
+
+---
+
 ## [3.4.0] — 2026-04-22
 
 ### Changed
